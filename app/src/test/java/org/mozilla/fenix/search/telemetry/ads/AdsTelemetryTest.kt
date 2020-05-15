@@ -13,6 +13,8 @@ import mozilla.components.concept.engine.Engine
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,6 +22,7 @@ import org.mozilla.fenix.components.metrics.Event
 import org.mozilla.fenix.components.metrics.MetricController
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.search.telemetry.ExtensionInfo
+import org.mozilla.fenix.search.telemetry.SearchProviderModel
 import org.mozilla.fenix.search.telemetry.ads.AdsTelemetry.Companion.ADS_EXTENSION_ID
 import org.mozilla.fenix.search.telemetry.ads.AdsTelemetry.Companion.ADS_EXTENSION_RESOURCE_URL
 import org.mozilla.fenix.search.telemetry.ads.AdsTelemetry.Companion.ADS_MESSAGE_DOCUMENT_URLS_KEY
@@ -29,6 +32,19 @@ import org.mozilla.fenix.search.telemetry.ads.AdsTelemetry.Companion.ADS_MESSAGE
 @RunWith(FenixRobolectricTestRunner::class)
 class AdsTelemetryTest {
 
+    private val testSearchProvider =
+        SearchProviderModel(
+            name = "test",
+            regexp = "test",
+            queryParam = "test",
+            codeParam = "test",
+            codePrefixes = listOf(),
+            followOnParams = listOf(),
+            extraAdServersRegexps = listOf(
+                "^https:\\/\\/www\\.bing\\.com\\/acli?c?k",
+                "^https:\\/\\/www\\.bing\\.com\\/fd\\/ls\\/GLinkPingPost\\.aspx.*acli?c?k"
+            )
+        )
     private val metrics: MetricController = mockk(relaxed = true)
     private lateinit var ads: AdsTelemetry
 
@@ -113,5 +129,19 @@ class AdsTelemetryTest {
         ads.processMessage(message)
 
         verify(exactly = 0) { metrics.track(any()) }
+    }
+
+    @Test
+    fun `test search provider contains ads`() {
+        val ad = "https://www.bing.com/aclick"
+        val nonAd = "https://www.bing.com/notanad"
+        assertTrue(testSearchProvider.containsAds(listOf(ad, nonAd)))
+    }
+
+    @Test
+    fun `test search provider does not contain ads`() {
+        val nonAd1 = "https://www.yahoo.com/notanad"
+        val nonAd2 = "https://www.google.com/"
+        assertFalse(testSearchProvider.containsAds(listOf(nonAd1, nonAd2)))
     }
 }

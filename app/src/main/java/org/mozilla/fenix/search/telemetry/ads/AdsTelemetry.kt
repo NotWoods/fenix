@@ -10,16 +10,13 @@ import mozilla.components.concept.engine.Engine
 import org.json.JSONObject
 import org.mozilla.fenix.components.metrics.Event
 import org.mozilla.fenix.components.metrics.MetricController
-import org.mozilla.fenix.ext.containsAds
 import org.mozilla.fenix.search.telemetry.BaseSearchTelemetry
 import org.mozilla.fenix.search.telemetry.ExtensionInfo
+import org.mozilla.fenix.search.telemetry.SearchProviderModel
 
 class AdsTelemetry(private val metrics: MetricController) : BaseSearchTelemetry() {
 
-    override fun install(
-        engine: Engine,
-        store: BrowserStore
-    ) {
+    override fun install(engine: Engine, store: BrowserStore) {
         val info = ExtensionInfo(
             id = ADS_EXTENSION_ID,
             resourceUrl = ADS_EXTENSION_RESOURCE_URL,
@@ -29,13 +26,10 @@ class AdsTelemetry(private val metrics: MetricController) : BaseSearchTelemetry(
     }
 
     fun trackAdClickedMetric(sessionUrl: String?, urlPath: List<String>) {
-        if (sessionUrl == null) {
-            return
-        }
-        val provider = getProviderForUrl(sessionUrl)
-        provider?.let {
-            if (it.containsAds(urlPath)) {
-                metrics.track(Event.SearchAdClicked(it.name))
+        val provider = getProviderForUrl(sessionUrl ?: return)
+        provider?.apply {
+            if (containsAds(urlPath)) {
+                metrics.track(Event.SearchAdClicked(name))
             }
         }
     }
@@ -43,9 +37,9 @@ class AdsTelemetry(private val metrics: MetricController) : BaseSearchTelemetry(
     override fun processMessage(message: JSONObject) {
         val urls = getMessageList<String>(message, ADS_MESSAGE_DOCUMENT_URLS_KEY)
         val provider = getProviderForUrl(message.getString(ADS_MESSAGE_SESSION_URL_KEY))
-        provider?.let {
-            if (it.containsAds(urls)) {
-                metrics.track(Event.SearchWithAds(it.name))
+        provider?.apply {
+            if (containsAds(urls)) {
+                metrics.track(Event.SearchWithAds(name))
             }
         }
     }
@@ -63,3 +57,13 @@ class AdsTelemetry(private val metrics: MetricController) : BaseSearchTelemetry(
         internal const val ADS_MESSAGE_ID = "MozacBrowserAds"
     }
 }
+
+@VisibleForTesting
+internal fun SearchProviderModel.containsAds(urlList: List<String>) =
+    urlList.containsAds(extraAdServersRegexps)
+
+private fun List<String>.containsAds(adRegexps: List<String>) =
+    this.any { url -> url.isAd(adRegexps) }
+
+private fun String.isAd(adRegexps: List<String>) =
+    adRegexps.any { adsRegex -> adsRegex.toRegex().containsMatchIn(this) }
