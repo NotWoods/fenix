@@ -5,11 +5,14 @@
 package org.mozilla.fenix.home.intent
 
 import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import androidx.core.net.toUri
 import androidx.navigation.NavController
 import io.mockk.Called
 import io.mockk.mockk
 import io.mockk.verify
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -20,6 +23,7 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(FenixRobolectricTestRunner::class)
 class DeepLinkIntentProcessorTest {
@@ -40,6 +44,15 @@ class DeepLinkIntentProcessorTest {
     @Test
     fun `do not process blank intents`() {
         assertFalse(processor.process(Intent(), navController, out))
+
+        verify { activity wasNot Called }
+        verify { navController wasNot Called }
+        verify { out wasNot Called }
+    }
+
+    @Test
+    fun `do not process other links`() {
+        assertFalse(processor.process(testIntent("https://test.com"), navController, out))
 
         verify { activity wasNot Called }
         verify { navController wasNot Called }
@@ -148,10 +161,26 @@ class DeepLinkIntentProcessorTest {
         verify { out wasNot Called }
     }
 
+    @Config(sdk = [Build.VERSION_CODES.N])
     @Test
-    fun `process make_default_browser deep link`() {
+    fun `process make_default_browser deep link above N`() {
         assertTrue(processor.process(testIntent("fenix://make_default_browser"), navController, out))
 
+        verify {
+            activity.startActivity(withArg { intent ->
+                assertEquals(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS, intent.action)
+            })
+        }
+        verify { navController wasNot Called }
+        verify { out wasNot Called }
+    }
+
+    @Config(sdk = [Build.VERSION_CODES.M])
+    @Test
+    fun `process make_default_browser deep link below N`() {
+        assertTrue(processor.process(testIntent("fenix://make_default_browser"), navController, out))
+
+        verify { activity wasNot Called }
         verify { navController wasNot Called }
         verify { out wasNot Called }
     }

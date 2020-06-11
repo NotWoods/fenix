@@ -46,7 +46,7 @@ class StartSearchIntentProcessorTest {
     }
 
     @Test
-    fun `process search intents`() {
+    fun `process search intents from widget`() {
         val intent = Intent().apply {
             putExtra(HomeActivity.OPEN_TO_SEARCH, StartSearchIntentProcessor.SEARCH_WIDGET)
         }
@@ -58,6 +58,63 @@ class StartSearchIntentProcessorTest {
                 NavGraphDirections.actionGlobalSearch(
                     sessionId = null,
                     searchAccessPoint = Event.PerformedSearch.SearchAccessPoint.WIDGET
+                ),
+                null
+            )
+        }
+        verify { out.removeExtra(HomeActivity.OPEN_TO_SEARCH) }
+    }
+
+    fun `process search intents from new tab shortcut`() {
+        val intent = Intent().apply {
+            putExtra(HomeActivity.OPEN_TO_SEARCH, StartSearchIntentProcessor.STATIC_SHORTCUT_NEW_TAB)
+        }
+        StartSearchIntentProcessor(metrics).process(intent, navController, out)
+
+        verify { metrics.track(Event.PrivateBrowsingStaticShortcutTab) }
+        verify {
+            navController.navigate(
+                NavGraphDirections.actionGlobalSearch(
+                    sessionId = null,
+                    searchAccessPoint = Event.PerformedSearch.SearchAccessPoint.SHORTCUT
+                ),
+                null
+            )
+        }
+        verify { out.removeExtra(HomeActivity.OPEN_TO_SEARCH) }
+    }
+
+    fun `process search intents from new private tab shortcut`() {
+        val intent = Intent().apply {
+            putExtra(HomeActivity.OPEN_TO_SEARCH, StartSearchIntentProcessor.STATIC_SHORTCUT_NEW_PRIVATE_TAB)
+        }
+        StartSearchIntentProcessor(metrics).process(intent, navController, out)
+
+        verify { metrics.track(Event.PrivateBrowsingStaticShortcutPrivateTab) }
+        verify {
+            navController.navigate(
+                NavGraphDirections.actionGlobalSearch(
+                    sessionId = null,
+                    searchAccessPoint = Event.PerformedSearch.SearchAccessPoint.SHORTCUT
+                ),
+                null
+            )
+        }
+        verify { out.removeExtra(HomeActivity.OPEN_TO_SEARCH) }
+    }
+
+    fun `process search intents from private browsing shortcut`() {
+        val intent = Intent().apply {
+            putExtra(HomeActivity.OPEN_TO_SEARCH, StartSearchIntentProcessor.PRIVATE_BROWSING_PINNED_SHORTCUT)
+        }
+        StartSearchIntentProcessor(metrics).process(intent, navController, out)
+
+        verify { metrics.track(Event.PrivateBrowsingPinnedShortcutPrivateTab) }
+        verify {
+            navController.navigate(
+                NavGraphDirections.actionGlobalSearch(
+                    sessionId = null,
+                    searchAccessPoint = Event.PerformedSearch.SearchAccessPoint.SHORTCUT
                 ),
                 null
             )
