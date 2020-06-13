@@ -98,6 +98,10 @@
                 <data android:scheme="${deepLinkScheme}"
                     android:host="make_default_browser"/>
             </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
         </activity>
 
         <activity
@@ -262,6 +266,20 @@
         <meta-data
             android:name="firebase_analytics_collection_enabled"
             android:value="false" />
+
+        <service
+            android:name=".widget.PrivateTileService"
+            android:icon="@drawable/ic_private_browsing_tile"
+            android:label="@string/preferences_open_links_in_apps"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action
+                    android:name="android.service.quicksettings.action.QS_TILE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.ACTIVE_TILE"
+                android:value="true" />
+        </service>
     </application>
 
 </manifest>

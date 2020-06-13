@@ -4,7 +4,11 @@
 
 package org.mozilla.fenix.settings
 
+import android.content.ComponentName
+import android.os.Build
+import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
+import android.service.quicksettings.TileService
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
@@ -16,6 +20,7 @@ import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.ext.metrics
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
+import org.mozilla.fenix.widget.PrivateTileService
 
 /**
  * Lets the user customize Private browsing options.
@@ -43,6 +48,12 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
         findPreference<SwitchPreference>(getPreferenceKey(R.string.pref_key_open_links_in_a_private_tab))?.apply {
             onPreferenceChangeListener = SharedPreferenceUpdater()
             isChecked = context.settings().openLinksInAPrivateTab
+            if (SDK_INT >= Build.VERSION_CODES.N) {
+                TileService.requestListeningState(
+                    context,
+                    ComponentName(context, PrivateTileService::class.java)
+                )
+            }
         }
 
         findPreference<SwitchPreference>(getPreferenceKey
