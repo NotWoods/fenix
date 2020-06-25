@@ -213,7 +213,7 @@ open class FenixSearchEngineProvider(
         }
 
         if (!prefs.contains(installedEnginesKey)) {
-            val defaultSet = baseSearchEngines.await()
+            val defaultSet = searchEngines.await()
                 .list
                 .map { it.identifier }
                 .toSet()
