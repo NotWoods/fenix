@@ -1,16 +1,18 @@
 package org.mozilla.fenix.components.searchengine
 
 import android.content.Context
-import io.mockk.every
-import io.mockk.mockk
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.just
+import io.mockk.mockk
 import io.mockk.mockkObject
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestCoroutineScope
 import kotlinx.coroutines.test.runBlockingTest
 import mozilla.components.browser.search.SearchEngine
 import mozilla.components.browser.search.provider.SearchEngineList
@@ -27,11 +29,12 @@ import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 @RunWith(FenixRobolectricTestRunner::class)
 class FenixSearchEngineProviderTest {
 
+    private val scope = TestCoroutineScope()
     private lateinit var fenixSearchEngineProvider: FenixSearchEngineProvider
 
     @Before
     fun before() {
-        fenixSearchEngineProvider = FakeFenixSearchEngineProvider(testContext)
+        fenixSearchEngineProvider = FakeFenixSearchEngineProvider(testContext, scope)
         mockkObject(CustomSearchEngineStore)
         fenixSearchEngineProvider.let {
             every { CustomSearchEngineStore.loadCustomSearchEngines(testContext) } returns listOf(
@@ -50,7 +53,7 @@ class FenixSearchEngineProviderTest {
 
     @Suppress("DEPRECATION")
     @Test
-    fun `add custom engine`() = runBlockingTest {
+    fun `add custom engine`() = scope.runBlockingTest {
         val engineName = "Ecosia"
         val engineQuery = "www.ecosia.com/%s"
         val searchEngine: SearchEngine = mockk(relaxed = true)
@@ -71,7 +74,7 @@ class FenixSearchEngineProviderTest {
     }
 
     @Test
-    fun `GIVEN sharedprefs does not contain installed engines WHEN installedSearchEngineIdentifiers THEN defaultEngines + customEngines ids are returned`() = runBlockingTest {
+    fun `GIVEN sharedprefs does not contain installed engines WHEN installedSearchEngineIdentifiers THEN defaultEngines + customEngines ids are returned`() = scope.runBlockingTest {
         val expectedDefaults = fenixSearchEngineProvider.baseSearchEngines.toIdSet()
         val expectedCustom = fenixSearchEngineProvider.customSearchEngines.toIdSet()
         val expected = expectedDefaults + expectedCustom
@@ -81,7 +84,7 @@ class FenixSearchEngineProviderTest {
     }
 
     @Test
-    fun `GIVEN sharedprefs contains installed engines WHEN installedSearchEngineIdentifiers THEN defaultEngines + customEngines ids are returned`() = runBlockingTest {
+    fun `GIVEN sharedprefs contains installed engines WHEN installedSearchEngineIdentifiers THEN defaultEngines + customEngines ids are returned`() = scope.runBlockingTest {
         val sp = testContext.getSharedPreferences(FenixSearchEngineProvider.PREF_FILE_SEARCH_ENGINES, Context.MODE_PRIVATE)
         sp.edit().putStringSet(fenixSearchEngineProvider.localeAwareInstalledEnginesKey(), persistedInstalledEngines).apply()
 
@@ -99,7 +102,10 @@ private suspend fun Deferred<SearchEngineList>.toIdSet() =
 
 private val persistedInstalledEngines = setOf("bing", "ecosia")
 
-class FakeFenixSearchEngineProvider(context: Context) : FenixSearchEngineProvider(context) {
+class FakeFenixSearchEngineProvider(
+    context: Context,
+    scope: CoroutineScope
+) : FenixSearchEngineProvider(context, scope) {
     override val localizationProvider: SearchLocalizationProvider
         get() = LocaleSearchLocalizationProvider()
 

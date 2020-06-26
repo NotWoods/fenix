@@ -32,8 +32,9 @@ import java.util.Locale
 
 @SuppressWarnings("TooManyFunctions")
 open class FenixSearchEngineProvider(
-    private val context: Context
-) : SearchEngineProvider, CoroutineScope by CoroutineScope(Job() + Dispatchers.IO) {
+    private val context: Context,
+    private val scope: CoroutineScope = CoroutineScope(Job() + Dispatchers.IO)
+) : SearchEngineProvider {
     private val locationService: LocationService = if (Config.channel.isDebug) {
         LocationService.dummy()
     } else {
@@ -48,11 +49,11 @@ open class FenixSearchEngineProvider(
     open val localizationProvider: SearchLocalizationProvider =
         RegionSearchLocalizationProvider(locationService)
 
-    open var baseSearchEngines = async {
+    open var baseSearchEngines = scope.async {
         AssetsSearchEngineProvider(localizationProvider).loadSearchEngines(context)
     }
 
-    private val loadedRegion = async { localizationProvider.determineRegion() }
+    private val loadedRegion = scope.async { localizationProvider.determineRegion() }
 
     // https://github.com/mozilla-mobile/fenix/issues/9935
     // Adds a Locale search engine provider as a fallback in case the MLS lookup takes longer
@@ -61,11 +62,11 @@ open class FenixSearchEngineProvider(
     private val fallBackProvider =
         AssetsSearchEngineProvider(fallbackLocationService)
 
-    private val fallbackEngines = async { fallBackProvider.loadSearchEngines(context) }
-    private val fallbackRegion = async { fallbackLocationService.determineRegion() }
+    private val fallbackEngines = scope.async { fallBackProvider.loadSearchEngines(context) }
+    private val fallbackRegion = scope.async { fallbackLocationService.determineRegion() }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    open val bundledSearchEngines = async {
+    open val bundledSearchEngines = scope.async {
         val defaultEngineIdentifiers = baseSearchEngines.await().list.map { it.identifier }.toSet()
         AssetsSearchEngineProvider(
             localizationProvider,
@@ -80,7 +81,7 @@ open class FenixSearchEngineProvider(
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    open var customSearchEngines = async {
+    open var customSearchEngines = scope.async {
         CustomSearchEngineProvider().loadSearchEngines(context)
     }
 
@@ -174,7 +175,7 @@ open class FenixSearchEngineProvider(
     }
 
     fun reload() {
-        launch {
+        scope.launch {
             customSearchEngines = async { CustomSearchEngineProvider().loadSearchEngines(context) }
             loadedSearchEngines = refreshAsync()
         }
@@ -183,12 +184,12 @@ open class FenixSearchEngineProvider(
     // When we change the locale we need to update the baseSearchEngines list
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     open fun updateBaseSearchEngines() {
-        baseSearchEngines = async {
+        baseSearchEngines = scope.async {
             AssetsSearchEngineProvider(localizationProvider).loadSearchEngines(context)
         }
     }
 
-    private fun refreshAsync() = async {
+    private fun refreshAsync() = scope.async {
         val engineList = baseSearchEngines.await()
         val bundledList = bundledSearchEngines.await().list
         val customList = customSearchEngines.await().list
