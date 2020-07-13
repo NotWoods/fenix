@@ -21,4 +21,6 @@ class FenixRobolectricTestApplication : FenixApplication() {
 
     @ExperimentalCoroutinesApi
     override fun setupInMainProcessOnly() = Unit
+
+    override fun initializeGlean() = Unit
 }

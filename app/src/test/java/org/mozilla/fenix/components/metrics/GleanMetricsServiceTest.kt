@@ -4,8 +4,15 @@
 
 package org.mozilla.fenix.components.metrics
 
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
+import mozilla.components.service.glean.Glean
 import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -15,6 +22,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.Metrics
+import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.GleanMetrics.SearchDefaultEngine
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 
@@ -27,7 +35,16 @@ class GleanMetricsServiceTest {
 
     @Before
     fun setup() {
+        mockkObject(Glean)
+        every { Glean.setUploadEnabled(true) } just Runs
+        every { Glean.registerPings(Pings) } just Runs
+
         gleanService = GleanMetricsService(testContext)
+    }
+
+    @After
+    fun teardown() {
+        unmockkObject(Glean)
     }
 
     @Test
